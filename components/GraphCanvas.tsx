@@ -34,28 +34,27 @@ export const GraphCanvas: React.FC = () => {
             'text-background-color': '#000',
             'text-background-padding': '2px',
             'text-background-shape': 'roundrectangle',
+            // Border width linked to clustering coefficient * 7
+            'border-width': (ele: any) => {
+               const clustering = ele.data('clustering');
+               return typeof clustering === 'number' ? Math.max(1, clustering * 7) : 1;
+            },
             'border-color': '#fff',
-            'border-width': 1,
           }
         },
         {
           selector: 'edge',
           style: {
-            // Dynamic width based on weight (default 1.5 if undefined)
             'width': (ele: any) => {
               const weight = ele.data('weight');
-              // Scale: 0.1->1.2px, 1.0->3px, 2.0->5px
               return weight ? Math.max(1, 1 + (weight * 2)) : 1.5;
             },
-            // Triadic Balance Coloring
             'line-color': (ele) => ele.data('sign') === 'negative' ? '#ef4444' : '#10b981', 
             'target-arrow-color': (ele) => ele.data('sign') === 'negative' ? '#ef4444' : '#10b981',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
-            // Dynamic opacity based on weight
             'opacity': (ele: any) => {
                const weight = ele.data('weight');
-               // Range: 0.4 to 1.0 based on weight
                return weight ? Math.min(1, 0.4 + (weight * 0.6)) : 0.6;
             }
           }
@@ -63,7 +62,7 @@ export const GraphCanvas: React.FC = () => {
         {
           selector: ':selected',
           style: {
-            'border-width': 3,
+            'border-width': 4,
             'border-color': '#facc15', // yellow-400
             'background-color': '#facc15'
           }
@@ -75,10 +74,6 @@ export const GraphCanvas: React.FC = () => {
     const cy = cyRef.current;
 
     cy.on('tap', 'node', (evt) => {
-      // Handle multi-select with shift/ctrl check if needed, 
-      // but here we rely on box selection or click toggling if simple.
-      // Let's assume standard click = select single, shift+click = toggle (handled by cytoscape mostly)
-      // We'll sync with store.
       const node = evt.target;
       const isMulti = evt.originalEvent.shiftKey || evt.originalEvent.ctrlKey;
       toggleNodeSelection(node.id(), isMulti);
@@ -90,7 +85,6 @@ export const GraphCanvas: React.FC = () => {
       }
     });
 
-    // Sync box selection events
     cy.on('boxselect', 'node', (evt) => {
       toggleNodeSelection(evt.target.id(), true);
     });
@@ -106,9 +100,6 @@ export const GraphCanvas: React.FC = () => {
     const cy = cyRef.current;
 
     cy.batch(() => {
-      // Smart diffing or full redraw? For stability in this demo, full redraw but preserve positions if possible.
-      const currentNodes = new Set(cy.nodes().map(n => n.id()));
-      
       const newNodes = filteredGraph.nodes.map(n => ({
         group: 'nodes',
         data: n.data,
@@ -119,33 +110,29 @@ export const GraphCanvas: React.FC = () => {
         data: e.data
       }));
 
-      // Simple brute force update for demo stability
       cy.elements().remove();
       cy.add([...newNodes, ...newEdges] as any);
     });
 
-    // Run Cola Layout
     cy.layout({
       name: 'cola',
       animate: true,
-      refresh: 2, // number of ticks per frame; higher is faster but jerkier
+      refresh: 2,
       maxSimulationTime: 3000,
       ungrabifyWhileSimulating: false,
       fit: true,
       padding: 30,
-      randomize: false, // keep existing positions if available
+      randomize: false,
       nodeSpacing: (node: any) => {
-        // give important nodes more space
         const importance = node.data('importance') || 0.5;
         return 20 + (importance * 20);
       },
       edgeLength: (edge: any) => {
-        // Lighter edges are longer, heavier edges pull tighter
         const weight = edge.data('weight') || 0.5;
         return 150 - (weight * 50); 
       },
       nodeDimensionsIncludeLabels: true,
-      gravity: 0.5, // gravity to center
+      gravity: 0.5,
       friction: 0.5,
     } as any).run();
 
@@ -172,9 +159,6 @@ export const GraphCanvas: React.FC = () => {
       cy.nodes().forEach(ele => {
         const data = ele.data() as NodeData;
         const baseSize = 20;
-        
-        // Use 'importance' (0-1 range) for size
-        // Default to 0.5 if missing
         const importance = typeof data.importance === 'number' ? data.importance : 0.5;
         const size = baseSize + (importance * 40); 
         
@@ -188,6 +172,10 @@ export const GraphCanvas: React.FC = () => {
           color = COLORS[data.type] || color;
         }
         ele.style('background-color', color);
+        
+        // Ensure style update for clustering
+        const clustering = data.clustering || 0;
+        ele.style('border-width', Math.max(1, clustering * 7));
       });
     });
 

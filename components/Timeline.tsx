@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useStore } from '../store';
 
@@ -6,11 +5,12 @@ export const Timeline: React.FC = () => {
   const { graph, timelineYear, setFilterYear } = useStore();
   
   // Extract years and sort
-  const years = Array.from(new Set(
+  // Explicitly typing helps avoid 'unknown' type inference issues
+  const years: number[] = Array.from(new Set(
     graph.nodes
       .map(n => n.data.year)
-      .filter((y): y is number => y !== undefined)
-  )).sort((a: number, b: number) => a - b);
+      .filter((y): y is number => typeof y === 'number')
+  )).sort((a, b) => a - b);
 
   if (years.length === 0) return null;
 
@@ -29,7 +29,7 @@ export const Timeline: React.FC = () => {
         {/* Line */}
         <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-zinc-800 -z-0"></div>
 
-        {years.map(year => (
+        {years.map((year) => (
           <button 
             key={year}
             onClick={() => setFilterYear(year)}

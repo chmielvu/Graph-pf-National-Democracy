@@ -11,14 +11,14 @@ export async function getEmbedding(text: string): Promise<number[]> {
   if (embeddingsCache.has(text)) return embeddingsCache.get(text)!;
 
   try {
+    // Fix: 'contents' instead of 'content'
     const response = await ai.models.embedContent({
       model: "text-embedding-004",
-      content: {
-        parts: [{ text }]
-      }
+      contents: [{ parts: [{ text }] }]
     });
 
-    const embedding = response.embedding?.values;
+    // Fix: 'embeddings' instead of 'embedding'
+    const embedding = response.embeddings?.[0]?.values;
     if (embedding) {
       embeddingsCache.set(text, embedding);
       return embedding;

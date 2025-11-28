@@ -9,11 +9,19 @@ export interface NodeData {
   dates?: string;
   importance?: number;
   region?: string; // 'Warszawa', 'Wielkopolska', 'Galicja', 'Emigracja'
+  
   // Metrics
   degreeCentrality?: number;
   pagerank?: number;
   community?: number; // Louvain community ID
   kCore?: number;
+  
+  // Tier-3 Advanced Metrics
+  betweenness?: number;
+  closeness?: number;
+  eigenvector?: number;
+  clustering?: number; // Local Clustering Coefficient
+
   // Embedding for semantic search
   embedding?: number[]; 
   sources?: string[];

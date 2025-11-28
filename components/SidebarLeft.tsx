@@ -75,6 +75,23 @@ export const SidebarLeft: React.FC = () => {
     ? graph.nodes.find(n => n.data.id === selectedNodeIds[0])?.data 
     : null;
 
+  const handleRunMetrics = () => {
+    try {
+      initGraph();
+      addToast({ 
+        title: 'Analiza Zakończona', 
+        description: 'Graf zaktualizowany – 7 metryk centralności (w tym współczynnik klasteryzacji) + społeczności', 
+        type: 'success' 
+      });
+    } catch (e: any) {
+      addToast({ 
+        title: 'Błąd Analizy', 
+        description: `Nie udało się przeliczyć metryk: ${e.message}`, 
+        type: 'error' 
+      });
+    }
+  };
+
   const handleExpand = async () => {
     const topic = prompt("Enter a topic or entity to expand upon:");
     if (!topic) return;
@@ -146,7 +163,7 @@ export const SidebarLeft: React.FC = () => {
           <div className="space-y-6">
             <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Analysis</label>
-              <button onClick={initGraph} className="w-full btn-zinc"><Play size={16} /> Re-run Metrics</button>
+              <button onClick={handleRunMetrics} className="w-full btn-zinc"><Play size={16} /> Analiza i Rozwój Grafu</button>
               <button onClick={() => setShowStatsPanel(true)} className="w-full btn-zinc text-emerald-400"><Activity size={16} /> Graph Dashboard</button>
               <button onClick={runRegionalAnalysis} className="w-full btn-zinc border-purple-800 text-purple-300"><Map size={16} /> Regional Analysis</button>
               {regionalAnalysis && (
@@ -184,7 +201,17 @@ export const SidebarLeft: React.FC = () => {
                     <div className="space-y-2 text-xs text-zinc-400">
                       <p className="font-bold text-white text-sm">{selectedNode.label}</p>
                       <p>{selectedNode.description}</p>
-                      <button onClick={() => setEditingNode(selectedNode.id)} className="w-full btn-zinc text-xs"><Edit2 size={12}/> Edit Node</button>
+                      
+                      {/* Metric Display in Tooltip Area */}
+                      <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-zinc-800">
+                        <div>DC: <span className="text-white">{(selectedNode.degreeCentrality || 0).toFixed(3)}</span></div>
+                        <div>PR: <span className="text-white">{(selectedNode.pagerank || 0).toFixed(3)}</span></div>
+                        <div className="col-span-2 text-emerald-400">
+                          Clustering coefficient: <span className="font-mono font-bold">{(selectedNode.clustering || 0).toFixed(3)}</span>
+                        </div>
+                      </div>
+
+                      <button onClick={() => setEditingNode(selectedNode.id)} className="w-full btn-zinc text-xs mt-2"><Edit2 size={12}/> Edit Node</button>
                     </div>
                   )}
 
