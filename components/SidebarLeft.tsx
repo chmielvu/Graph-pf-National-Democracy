@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useStore } from '../store';
 import { Play, Download, Search, Scissors, X, GitMerge, Map, Activity, Edit2, Trash2, BrainCircuit } from 'lucide-react';
 import { generateGraphExpansion } from '../services/geminiService';
@@ -28,6 +28,48 @@ export const SidebarLeft: React.FC = () => {
 
   const [dupeCandidates, setDupeCandidates] = useState<DuplicateCandidate[]>([]);
   const [showDupeModal, setShowDupeModal] = useState(false);
+  
+  // Resizable Sidebar State
+  const [sidebarWidth, setSidebarWidth] = useState(420);
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = useCallback((e: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = e.clientX;
+      if (newWidth > 240 && newWidth < 800) {
+        setSidebarWidth(newWidth);
+      }
+    }
+  }, [isResizing]);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', resize);
+    window.addEventListener('mouseup', stopResizing);
+    return () => {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+    };
+  }, [resize, stopResizing]);
+
+  useEffect(() => {
+    if (isResizing) {
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  }, [isResizing]);
 
   const selectedNode = selectedNodeIds.length === 1 
     ? graph.nodes.find(n => n.data.id === selectedNodeIds[0])?.data 
@@ -87,8 +129,15 @@ export const SidebarLeft: React.FC = () => {
 
   return (
     <>
-      <div className={`${isSidebarOpen ? 'w-[420px] border-r' : 'w-0 border-r-0'} transition-all duration-300 ease-in-out h-full bg-zinc-900 border-zinc-800 overflow-hidden flex-shrink-0`}>
-        <div className="w-[420px] h-full flex flex-col p-4 overflow-y-auto">
+      <div 
+        ref={sidebarRef}
+        className={`${isSidebarOpen ? 'border-r' : 'border-r-0'} bg-zinc-900 border-zinc-800 overflow-hidden flex-shrink-0 relative`}
+        style={{ 
+          width: isSidebarOpen ? sidebarWidth : 0, 
+          transition: isResizing ? 'none' : 'width 0.3s ease-in-out' 
+        }}
+      >
+        <div style={{ width: sidebarWidth }} className="h-full flex flex-col p-4 overflow-y-auto">
           <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
             Endecja KG <span className="text-[10px] text-zinc-500 bg-zinc-800 px-1 rounded">SOTA+</span>
@@ -152,6 +201,12 @@ export const SidebarLeft: React.FC = () => {
             <button onClick={handleExport} className="w-full btn-zinc text-xs"><Download size={14}/> Backup Graph</button>
           </div>
         </div>
+
+        {/* Drag Handle */}
+        <div 
+          onMouseDown={startResizing}
+          className={`absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-indigo-500/50 z-50 transition-colors ${isResizing ? 'bg-indigo-600' : 'bg-transparent'}`}
+        />
       </div>
 
       {showDupeModal && (

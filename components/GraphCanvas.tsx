@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import cytoscape from 'cytoscape';
 import cola from 'cytoscape-cola';
@@ -40,13 +41,23 @@ export const GraphCanvas: React.FC = () => {
         {
           selector: 'edge',
           style: {
-            'width': 1.5,
+            // Dynamic width based on weight (default 1.5 if undefined)
+            'width': (ele: any) => {
+              const weight = ele.data('weight');
+              // Scale: 0.1->1.2px, 1.0->3px, 2.0->5px
+              return weight ? Math.max(1, 1 + (weight * 2)) : 1.5;
+            },
             // Triadic Balance Coloring
             'line-color': (ele) => ele.data('sign') === 'negative' ? '#ef4444' : '#10b981', 
             'target-arrow-color': (ele) => ele.data('sign') === 'negative' ? '#ef4444' : '#10b981',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
-            'opacity': 0.6
+            // Dynamic opacity based on weight
+            'opacity': (ele: any) => {
+               const weight = ele.data('weight');
+               // Range: 0.4 to 1.0 based on weight
+               return weight ? Math.min(1, 0.4 + (weight * 0.6)) : 0.6;
+            }
           }
         },
         {
@@ -129,7 +140,9 @@ export const GraphCanvas: React.FC = () => {
         return 20 + (importance * 20);
       },
       edgeLength: (edge: any) => {
-        return 150; 
+        // Lighter edges are longer, heavier edges pull tighter
+        const weight = edge.data('weight') || 0.5;
+        return 150 - (weight * 50); 
       },
       nodeDimensionsIncludeLabels: true,
       gravity: 0.5, // gravity to center
